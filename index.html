@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>عبدالله</title>
+<meta name="description" content="عبدالله - مساعد صوتي خاص">
+<meta name="theme-color" content="#0c0a08">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(circle at 50% 20%, #221a0c 0%, #0c0a08 70%);
+    color: #f2e3b8;
+    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app {
+    height: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 28px;
+    padding: 20px; text-align: center;
+  }
+  #brandName {
+    font-size: 30px; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(135deg, #ffd77a, #b8860b 60%, #ffe9a8);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  #brandSub { font-size: 13px; color: #a4906a; margin-top: -18px; }
+
+  #idleOrb {
+    width: 190px; height: 190px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe9a8, #b8860b 55%, #6b4e10 100%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 60px rgba(184,134,11,.55), inset 0 0 30px rgba(255,255,255,.15);
+    cursor: pointer; user-select: none;
+    animation: idleBreathe 3.2s ease-in-out infinite;
+  }
+  @keyframes idleBreathe { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.05); } }
+  #idleOrb img { width: 96px; height: 96px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)); }
+
+  #hintText { font-size: 14px; color: #8a7856; max-width: 260px; line-height: 1.6; }
+
+  #callScreen {
+    display: none; position: fixed; inset: 0; z-index: 999;
+    background: radial-gradient(circle at 50% 25%, #241c0d, #0a0806 80%);
+    flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 40px 20px 40px;
+  }
+  #callTop { text-align: center; }
+  #callName { font-size: 24px; font-weight: 700; color: #ffe9a8; letter-spacing: .5px; }
+  #callState { margin-top: 8px; font-size: 14px; color: #cbb989; min-height: 18px; }
+  #callMid { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; width: 100%; }
+  .orb-idle, .orb-listening, .orb-thinking, .orb-speaking {
+    width: 170px; height: 170px; border-radius: 50%;
+    background: linear-gradient(135deg,#ffd77a,#b8860b);
+    display: flex; align-items: center; justify-content: center; font-size: 60px;
+    box-shadow: 0 0 50px rgba(184,134,11,.6);
+  }
+  .orb-listening { animation: pulseListen 1.4s ease-in-out infinite; }
+  .orb-thinking { animation: spinThink 1.6s linear infinite; }
+  .orb-speaking { animation: pulseSpeak 0.6s ease-in-out infinite; }
+  @keyframes pulseListen { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.1); } }
+  @keyframes pulseSpeak { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+  @keyframes spinThink { 0%{ filter:brightness(1); } 50%{ filter:brightness(1.3); } 100%{ filter:brightness(1); } }
+  #genImage { display:none; width:170px; height:170px; border-radius:20px; object-fit:cover; box-shadow:0 0 40px rgba(184,134,11,.5); cursor:zoom-in; }
+
+  #btnEndCall {
+    width: 70px; height: 70px; border-radius: 50%; border: none;
+    background: #d64545; color: #fff; font-size: 28px; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(214,69,69,.5);
+  }
+  #imageLightbox { display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.9); align-items:center; justify-content:center; cursor:zoom-out; }
+  #imageLightbox img { max-width:92vw; max-height:88vh; border-radius:12px; }
+
+  #footerNote { position: fixed; bottom: 10px; font-size: 11px; color: #5c5138; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div>
+    <div id="brandName">عبدالله</div>
+    <div id="brandSub">مساعد صوتي خاص</div>
+  </div>
+  <div id="idleOrb" title="اتصل بعبدالله">
+    <img src="/icons/icon-192.png" alt="عبدالله">
+  </div>
+  <div id="hintText">اضغط على الأيقونة لبدء مكالمة صوتية مباشرة مع عبدالله</div>
+</div>
+
+<div id="callScreen">
+  <div id="callTop">
+    <div id="callName">عبدالله</div>
+    <div id="callState"></div>
+  </div>
+  <div id="callMid">
+    <div id="orb" class="orb-idle">🧔</div>
+    <img id="genImage" alt="">
+  </div>
+  <button type="button" id="btnEndCall">✕</button>
+</div>
+
+<div id="imageLightbox"><img id="imageLightboxImg" alt=""></div>
+<div id="footerNote">خاص — عمران</div>
+
+<script>
+(function(){
+  const idleOrb = document.getElementById('idleOrb');
+  const callScreen = document.getElementById('callScreen');
+  const callState = document.getElementById('callState');
+  const orbEl = document.getElementById('orb');
+  const btnEndCall = document.getElementById('btnEndCall');
+  const genImageEl = document.getElementById('genImage');
+
+  const STATE_LABELS = { idle: '', listening: 'يسمعك...', thinking: 'يفكر...', speaking: 'يتكلم...', error: 'حاول مرة ثانية' };
+  function setState(state, customLabel){
+    orbEl.className = 'orb-' + (state === 'error' ? 'thinking' : state);
+    callState.textContent = customLabel || STATE_LABELS[state] || '';
+  }
+
+  let rtPc = null, rtDc = null, rtStream = null, rtAudioEl = null, rtActive = false, rtCancelled = false;
+  let lastImageBase64 = null, lastImageMime = null;
+
+  function showImage(base64, mimeType){
+    lastImageBase64 = base64; lastImageMime = mimeType || 'image/png';
+    genImageEl.src = 'data:' + lastImageMime + ';base64,' + base64;
+    genImageEl.style.display = 'block';
+    orbEl.style.display = 'none';
+  }
+
+  async function generateOrEditImage(promptText, editMode){
+    try{
+      const body = { prompt: promptText };
+      if(editMode && lastImageBase64){
+        body.editImageBase64 = lastImageBase64;
+        body.editMimeType = lastImageMime;
+      }
+      const res = await fetch('/api/abdullah-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if(!res.ok || !data.imageBase64) return { ok: false, error: (data && data.error) || ('HTTP ' + res.status) };
+      showImage(data.imageBase64, data.mimeType);
+      return { ok: true };
+    }catch(e){ return { ok: false, error: e.message || String(e) }; }
+  }
+
+  async function searchWeb(query){
+    if(!query) return null;
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 7000);
+      const res = await fetch('/api/search', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }), signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if(!res.ok) return null;
+      const data = await res.json();
+      const parts = [];
+      if(data.answer) parts.push(data.answer);
+      if(Array.isArray(data.results)){
+        data.results.slice(0, 4).forEach(r => { if(r && r.content) parts.push('- ' + (r.title||'') + ': ' + r.content); });
+      }
+      return parts.length ? parts.join('\n') : null;
+    }catch(e){ return null; }
+  }
+
+  async function handleRtFunctionCall(ev){
+    if(!rtDc || rtDc.readyState !== 'open') return;
+    let args = {};
+    try{ args = JSON.parse(ev.arguments || '{}'); }catch(e){}
+    let output = { ok: false };
+    try{
+      setState('thinking');
+      if(ev.name === 'generate_image'){
+        const r = await generateOrEditImage(args.prompt || '', false);
+        output = r.ok ? { ok: true, message: 'Image generated and shown to the user on screen.' } : { ok: false, message: 'Image generation failed: ' + (r.error || 'unknown error') };
+      }else if(ev.name === 'edit_image'){
+        if(!lastImageBase64){
+          output = { ok: false, message: 'No image exists yet in this call to edit - tell the user to first ask you to create one.' };
+        }else{
+          const r = await generateOrEditImage(args.instruction || '', true);
+          output = r.ok ? { ok: true, message: 'Image edited and shown to the user on screen.' } : { ok: false, message: 'Image edit failed: ' + (r.error || 'unknown error') };
+        }
+      }else if(ev.name === 'search_web'){
+        const searchMsg = await searchWeb(args.query || '');
+        output = searchMsg ? { ok: true, results: searchMsg } : { ok: false, message: 'No useful search results found; answer from your own knowledge and say briefly if unsure.' };
+      }
+    }catch(e){ output = { ok: false, message: 'Tool execution error.' }; }
+    try{
+      rtDc.send(JSON.stringify({ type: 'conversation.item.create', item: { type: 'function_call_output', call_id: ev.call_id, output: JSON.stringify(output) } }));
+      rtDc.send(JSON.stringify({ type: 'response.create' }));
+    }catch(e){}
+  }
+
+  async function startRealtimeCall(){
+    rtCancelled = false;
+    let userTz = 'Asia/Dubai';
+    try{ userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dubai'; }catch(e){}
+    const tokenRes = await fetch('/api/realtime-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timezone: userTz })
+    });
+    const tokenData = await tokenRes.json().catch(() => ({}));
+    if(!tokenRes.ok || !tokenData.clientSecret){
+      throw new Error((tokenData && tokenData.error) ? tokenData.error : ('realtime session failed: HTTP ' + tokenRes.status));
+    }
+    const EPHEMERAL_KEY = tokenData.clientSecret;
+    if(rtCancelled) throw new Error('cancelled');
+
+    rtStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    if(rtCancelled){ rtStream.getTracks().forEach(tr => tr.stop()); rtStream = null; throw new Error('cancelled'); }
+
+    const pc = new RTCPeerConnection();
+    rtPc = pc;
+    rtAudioEl = new Audio();
+    rtAudioEl.autoplay = true;
+    pc.ontrack = (e) => { rtAudioEl.srcObject = e.streams[0]; };
+    pc.addTrack(rtStream.getTracks()[0], rtStream);
+
+    const dc = pc.createDataChannel('oai-events');
+    rtDc = dc;
+    dc.addEventListener('message', (e) => {
+      let ev;
+      try{ ev = JSON.parse(e.data); }catch(err){ return; }
+      if(ev.type === 'input_audio_buffer.speech_started'){ setState('listening'); }
+      else if(ev.type === 'response.created'){ setState('thinking'); }
+      else if(ev.type === 'output_audio_buffer.started' || ev.type === 'response.audio.delta'){ setState('speaking'); }
+      else if(ev.type === 'output_audio_buffer.stopped' || ev.type === 'response.done'){ setState('listening'); }
+      else if(ev.type === 'response.function_call_arguments.done'){ handleRtFunctionCall(ev); }
+      else if(ev.type === 'error'){ console.error('[abdullah] server error:', ev); }
+    });
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const sdpResponse = await fetch('https://api.openai.com/v1/realtime/calls', {
+      method: 'POST', body: offer.sdp,
+      headers: { Authorization: 'Bearer ' + EPHEMERAL_KEY, 'Content-Type': 'application/sdp' },
+    });
+    if(!sdpResponse.ok){
+      const errText = await sdpResponse.text().catch(() => '');
+      throw new Error('SDP exchange failed: ' + sdpResponse.status + ' ' + errText.slice(0, 200));
+    }
+    const answerSdp = await sdpResponse.text();
+    if(rtCancelled) throw new Error('cancelled');
+    await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Realtime connection timeout')), 10000);
+      pc.addEventListener('connectionstatechange', () => {
+        if(pc.connectionState === 'connected'){ clearTimeout(timeout); resolve(); }
+        else if(pc.connectionState === 'failed' || pc.connectionState === 'closed'){ clearTimeout(timeout); reject(new Error('Realtime connection ' + pc.connectionState)); }
+      });
+    });
+
+    rtActive = true;
+    setState('listening');
+  }
+
+  function endRealtimeCall(){
+    rtCancelled = true; rtActive = false;
+    if(rtDc){ try{ rtDc.close(); }catch(e){} rtDc = null; }
+    if(rtPc){ try{ rtPc.close(); }catch(e){} rtPc = null; }
+    if(rtStream){ rtStream.getTracks().forEach(tr => tr.stop()); rtStream = null; }
+    if(rtAudioEl){ try{ rtAudioEl.pause(); rtAudioEl.srcObject = null; }catch(e){} rtAudioEl = null; }
+  }
+
+  async function startCall(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      alert('الميكروفون غير مدعوم في هذا المتصفح');
+      return;
+    }
+    lastImageBase64 = null; lastImageMime = null;
+    genImageEl.style.display = 'none'; genImageEl.src = '';
+    orbEl.style.display = 'flex';
+    callScreen.style.display = 'flex';
+    setState('thinking');
+    try{
+      await Promise.race([
+        startRealtimeCall(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Realtime setup timed out')), 12000)),
+      ]);
+    }catch(e){
+      console.error('[abdullah] realtime call failed:', e);
+      setState('error', 'تعذر الاتصال، حاول مرة ثانية');
+      endRealtimeCall();
+      setTimeout(() => { callScreen.style.display = 'none'; }, 2200);
+    }
+  }
+
+  function endCall(){
+    endRealtimeCall();
+    callScreen.style.display = 'none';
+    setState('idle');
+  }
+
+  idleOrb.onclick = startCall;
+  btnEndCall.onclick = endCall;
+
+  (function lightboxSetup(){
+    const lb = document.getElementById('imageLightbox');
+    const lbImg = document.getElementById('imageLightboxImg');
+    genImageEl.addEventListener('click', () => {
+      if(!genImageEl.src) return;
+      lbImg.src = genImageEl.src;
+      lb.style.display = 'flex';
+    });
+    lb.addEventListener('click', () => { lb.style.display = 'none'; });
+  })();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(()=>{}); });
+  }
+})();
+</script>
+</body>
+</html>
