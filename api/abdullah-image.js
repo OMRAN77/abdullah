@@ -2,19 +2,14 @@
 // call mode. Powered by Gemini's image-generation model (server-side owner
 // key, GEMINI_API_KEY) - the only provider that can output images.
 // Private single-owner app: no usage limits.
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const checkAccess = require('./_auth');
 
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  if (!checkAccess(req, res)) return;
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
