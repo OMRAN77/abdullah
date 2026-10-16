@@ -1,19 +1,14 @@
 // Vercel Serverless Function: live internet search via Tavily's API, using the
 // owner's own server-side API key (TAVILY_API_KEY env var). Used by Abdullah
 // to answer questions that need real-time information.
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const checkAccess = require('./_auth');
 
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  if (!checkAccess(req, res)) return;
 
   try {
     const apiKey = process.env.TAVILY_API_KEY;

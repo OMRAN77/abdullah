@@ -121,6 +121,33 @@
   }
 
   let rtPc = null, rtDc = null, rtStream = null, rtAudioEl = null, rtActive = false, rtCancelled = false;
+
+  // Private access key: asked once, kept on this device, sent with every
+  // /api request. The server compares it against ABDULLAH_ACCESS_KEY.
+  const ACCESS_KEY_STORAGE = 'abdullah-access-key';
+  function getAccessKey(){
+    try{ return localStorage.getItem(ACCESS_KEY_STORAGE) || ''; }catch(e){ return ''; }
+  }
+  function setAccessKey(v){
+    try{ if(v) localStorage.setItem(ACCESS_KEY_STORAGE, v); else localStorage.removeItem(ACCESS_KEY_STORAGE); }catch(e){}
+  }
+  function ensureAccessKey(){
+    let key = getAccessKey();
+    if(!key){
+      key = (prompt('أدخل كلمة السر الخاصة بعبدالله') || '').trim();
+      setAccessKey(key);
+    }
+    return key;
+  }
+  async function apiFetch(path, body, signal){
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Access-Key': getAccessKey() },
+      body: JSON.stringify(body), signal,
+    });
+    if(res.status === 401) setAccessKey('');
+    return res;
+  }
   let lastImageBase64 = null, lastImageMime = null;
 
   function showImage(base64, mimeType){
@@ -137,9 +164,7 @@
         body.editImageBase64 = lastImageBase64;
         body.editMimeType = lastImageMime;
       }
-      const res = await fetch('/api/abdullah-image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
+      const res = await apiFetch('/api/abdullah-image', body);
       const data = await res.json().catch(() => ({}));
       if(!res.ok || !data.imageBase64) return { ok: false, error: (data && data.error) || ('HTTP ' + res.status) };
       showImage(data.imageBase64, data.mimeType);
@@ -152,10 +177,7 @@
     try{
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 7000);
-      const res = await fetch('/api/search', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }), signal: controller.signal,
-      });
+      const res = await apiFetch('/api/search', { query }, controller.signal);
       clearTimeout(timeout);
       if(!res.ok) return null;
       const data = await res.json();
@@ -200,12 +222,11 @@
     rtCancelled = false;
     let userTz = 'Asia/Dubai';
     try{ userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dubai'; }catch(e){}
-    const tokenRes = await fetch('/api/realtime-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ timezone: userTz })
-    });
+    const tokenRes = await apiFetch('/api/realtime-session', { timezone: userTz });
     const tokenData = await tokenRes.json().catch(() => ({}));
+    if(tokenRes.status === 401){
+      const err = new Error('unauthorized'); err.unauthorized = true; throw err;
+    }
     if(!tokenRes.ok || !tokenData.clientSecret){
       throw new Error((tokenData && tokenData.error) ? tokenData.error : ('realtime session failed: HTTP ' + tokenRes.status));
     }
@@ -260,6 +281,32 @@
 
     rtActive = true;
     setState('listening');
+    watchConnection(pc);
+  }
+
+  // After the call is up, end it cleanly if the connection drops instead of
+  // leaving the screen stuck on "listening". "disconnected" can recover on
+  // its own, so give it a few seconds first.
+  function watchConnection(pc){
+    let dropTimer = null;
+    pc.addEventListener('connectionstatechange', () => {
+      if(pc !== rtPc) return;
+      const st = pc.connectionState;
+      if(st === 'connected'){ clearTimeout(dropTimer); dropTimer = null; }
+      else if(st === 'disconnected'){
+        if(!dropTimer) dropTimer = setTimeout(() => { if(pc === rtPc) dropCall(); }, 5000);
+        setState('thinking', 'الاتصال ضعيف...');
+      }else if(st === 'failed' || st === 'closed'){
+        clearTimeout(dropTimer);
+        dropCall();
+      }
+    });
+  }
+
+  function dropCall(){
+    endRealtimeCall();
+    setState('error', 'انقطع الاتصال');
+    setTimeout(() => { callScreen.style.display = 'none'; setState('idle'); }, 2200);
   }
 
   function endRealtimeCall(){
@@ -275,6 +322,7 @@
       alert('الميكروفون غير مدعوم في هذا المتصفح');
       return;
     }
+    if(!ensureAccessKey()) return;
     lastImageBase64 = null; lastImageMime = null;
     genImageEl.style.display = 'none'; genImageEl.src = '';
     orbEl.style.display = 'flex';
@@ -287,7 +335,7 @@
       ]);
     }catch(e){
       console.error('[abdullah] realtime call failed:', e);
-      setState('error', 'تعذر الاتصال، حاول مرة ثانية');
+      setState('error', e && e.unauthorized ? 'كلمة السر غلط، حاول مرة ثانية' : 'تعذر الاتصال، حاول مرة ثانية');
       endRealtimeCall();
       setTimeout(() => { callScreen.style.display = 'none'; }, 2200);
     }
