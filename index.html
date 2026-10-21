@@ -190,16 +190,16 @@
     }catch(e){ return null; }
   }
 
-  async function githubTool(args){
+  async function githubTool(args, path){
     try{
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      const res = await apiFetch('/api/github', args || {}, controller.signal);
+      const res = await apiFetch(path || '/api/github', args || {}, controller.signal);
       clearTimeout(timeout);
       const data = await res.json().catch(() => null);
-      if(!data) return { ok: false, message: 'GitHub lookup failed (HTTP ' + res.status + ').' };
+      if(!data) return { ok: false, message: 'Lookup failed (HTTP ' + res.status + ').' };
       return data;
-    }catch(e){ return { ok: false, message: 'GitHub lookup timed out or failed; tell the owner briefly and offer to try again.' }; }
+    }catch(e){ return { ok: false, message: 'Request timed out or failed; tell the owner briefly and offer to try again.' }; }
   }
 
   async function handleRtFunctionCall(ev){
@@ -224,6 +224,8 @@
         output = searchMsg ? { ok: true, results: searchMsg } : { ok: false, message: 'No useful search results found; answer from your own knowledge and say briefly if unsure.' };
       }else if(ev.name === 'github'){
         output = await githubTool(args);
+      }else if(ev.name === 'calendar'){
+        output = await githubTool(args, '/api/calendar');
       }
     }catch(e){ output = { ok: false, message: 'Tool execution error.' }; }
     try{
