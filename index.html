@@ -256,7 +256,8 @@
     rtPc = pc;
     rtAudioEl = new Audio();
     rtAudioEl.autoplay = true;
-    pc.ontrack = (e) => { rtAudioEl.srcObject = e.streams[0]; };
+    rtAudioEl.setAttribute('playsinline', '');
+    pc.ontrack = (e) => { rtAudioEl.srcObject = e.streams[0]; try{ const p = rtAudioEl.play(); if(p && p.catch) p.catch(() => {}); }catch(err){} };
     pc.addTrack(rtStream.getTracks()[0], rtStream);
 
     const dc = pc.createDataChannel('oai-events');
@@ -298,6 +299,15 @@
     rtActive = true;
     setState('listening');
     watchConnection(pc);
+    // عبدالله يبادر بـ«السلام عليكم» فقط لحظة فتح المكالمة — بدون انتظار.
+    const sendGreeting = () => {
+      try{
+        if(rtActive && dc.readyState === 'open'){
+          dc.send(JSON.stringify({ type: 'response.create', response: { instructions: 'Say exactly this and nothing else, in a warm natural Gulf voice: السلام عليكم' } }));
+        }
+      }catch(err){}
+    };
+    if(dc.readyState === 'open') sendGreeting(); else dc.addEventListener('open', sendGreeting, { once: true });
   }
 
   // After the call is up, end it cleanly if the connection drops instead of
