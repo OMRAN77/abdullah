@@ -1,1 +1,1 @@
-abdullah: github-link + access-key set (2026-10-21 #2)
+abdullah: calendar secret set (2026-10-21 #3)
