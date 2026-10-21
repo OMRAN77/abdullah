@@ -190,6 +190,18 @@
     }catch(e){ return null; }
   }
 
+  async function githubTool(args){
+    try{
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const res = await apiFetch('/api/github', args || {}, controller.signal);
+      clearTimeout(timeout);
+      const data = await res.json().catch(() => null);
+      if(!data) return { ok: false, message: 'GitHub lookup failed (HTTP ' + res.status + ').' };
+      return data;
+    }catch(e){ return { ok: false, message: 'GitHub lookup timed out or failed; tell the owner briefly and offer to try again.' }; }
+  }
+
   async function handleRtFunctionCall(ev){
     if(!rtDc || rtDc.readyState !== 'open') return;
     let args = {};
@@ -210,6 +222,8 @@
       }else if(ev.name === 'search_web'){
         const searchMsg = await searchWeb(args.query || '');
         output = searchMsg ? { ok: true, results: searchMsg } : { ok: false, message: 'No useful search results found; answer from your own knowledge and say briefly if unsure.' };
+      }else if(ev.name === 'github'){
+        output = await githubTool(args);
       }
     }catch(e){ output = { ok: false, message: 'Tool execution error.' }; }
     try{
