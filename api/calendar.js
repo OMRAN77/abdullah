@@ -15,9 +15,9 @@ module.exports = async (req, res) => {
   }
   if (!checkAccess(req, res)) return;
 
-  const secret = process.env.CALENDAR_SECRET;
+  const secret = String(process.env.CALENDAR_SECRET || '').trim();
   if (!secret) {
-    res.status(500).json({ ok: false, error: 'Server is missing CALENDAR_SECRET' });
+    res.status(500).json({ ok: false, error: 'الرمز CALENDAR_SECRET مب محطوط في Vercel.' });
     return;
   }
 
@@ -65,11 +65,19 @@ module.exports = async (req, res) => {
     let data = null;
     try { data = JSON.parse(text); } catch (e) { data = null; }
     if (!data) {
-      res.status(502).json({ ok: false, error: 'Calendar script did not return JSON (HTTP ' + r.status + ')' });
+      console.error('[calendar] non-JSON from Apps Script', r.status, text.slice(0, 300));
+      res.status(502).json({ ok: false, error: 'سكربت التقويم ما رد بشكل صحيح (HTTP ' + r.status + ') — تأكد إن النشر في Apps Script «تطبيق ويب» والوصول «أي شخص».' });
       return;
     }
+    if (!data.ok && data.error === 'Unauthorized') {
+      console.error('[calendar] secret mismatch');
+      res.status(400).json({ ok: false, error: 'الرمز CALENDAR_SECRET في Vercel ما يطابق رمز Apps Script.' });
+      return;
+    }
+    if (!data.ok) console.error('[calendar] script error', data.error);
     res.status(data.ok ? 200 : 400).json(data);
   } catch (e) {
-    res.status(504).json({ ok: false, error: 'Calendar request failed: ' + (e && e.message ? e.message : String(e)) });
+    console.error('[calendar] request failed', e && e.message);
+    res.status(504).json({ ok: false, error: 'ما قدرت أوصل لسكربت التقويم: ' + (e && e.message ? e.message : String(e)) });
   }
 };
